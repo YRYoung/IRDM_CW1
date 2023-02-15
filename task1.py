@@ -20,12 +20,11 @@ from collections import Counter
 import matplotlib.pyplot as plt
 import numpy as np
 import spacy
-from nltk import sent_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from tqdm.autonotebook import tqdm
 
-spacy.cli.download("en_core_web_sm")
+# spacy.cli.download("en_core_web_sm")
 # nltk.download('wordnet')
 # nltk.download('omw-1.4')
 # nltk.download('stopwords')
@@ -35,6 +34,10 @@ spacy.cli.download("en_core_web_sm")
 __all__ = ['tokens', 'preprocessing']
 
 
+def load_tqdm(iterate, **kwargs):
+    return tqdm(iterate, **kwargs) if verbose else iterate
+
+
 def get_tokens(text) -> list:
     # words = r'?:\w+[\']?\w'
     # numbers = r'?:[-]?\d+(?:[,-.]\d+'
@@ -42,14 +45,23 @@ def get_tokens(text) -> list:
     #
     # token_pattern = fr'({symbols})|({numbers})*|({words}))'
     # tokens = re.findall(token_pattern, string=text)
-    sents = sent_tokenize(text)
+    docs = ['']
+    paragraphs = text.split('\n')
+    i = 0
+    count = 0
+    for p in load_tqdm(paragraphs):
+        count += len(p)
+        if count >= 100000:
+            i += 1
+            count = len(p)
+            docs.append('')
+        docs[i] += p
+
     nlp = spacy.load("en_core_web_sm")
+    tokens = []
+    for doc in load_tqdm(docs, unit='word', desc='tokenizing'):
+        tokens += list(nlp(doc))
 
-    # 对文章进行分词
-    docs = [nlp(sent) for sent in sents]
-
-    # 提取分词结果
-    tokens = [(token.text for token in doc) for doc in docs]
     return tokens
 
 
@@ -69,7 +81,7 @@ def preprocessing(data):
 
     # 把一个任何形式的语言词汇还原为一般形式（能表达完整语义）
     lemmatizer = WordNetLemmatizer()
-    data = [lemmatizer.lemmatize(d) for d in (tqdm(data, unit='word', desc='lemmatizing') if verbose else data)]
+    data = [lemmatizer.lemmatize(d) for d in (load_tqdm(data, unit='word', desc='lemmatizing'))]
     return Counter(data).most_common()
 
 
