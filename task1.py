@@ -68,12 +68,9 @@ def preprocessing(data):
     return Counter(data).most_common()
 
 
-def clean_tokens(word_list, remove_symbols=True, remove_nums=True):
-    remove_list = '\\(){}[\]=&|^+<>/*%;.,\"\'?!~——'
-    if remove_symbols:
-        word_list = list(filter(lambda x: x not in remove_list, word_list))
-    if remove_nums:
-        word_list = list(filter(lambda x: re.match(r'[-]*(\d+[,-.]*\D*)+', x) is None, word_list))
+def remove_nums(word_list):
+    pattern = re.compile('\d')
+    word_list = list(filter(lambda word: not bool(pattern.search(word)), word_list))
     return word_list
 
 
