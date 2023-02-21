@@ -42,28 +42,8 @@ def load_tqdm(iterate, **kwargs):
 
 
 def get_tokens(text) -> list:
-    # words = r'?:\w+[\']?\w'
-    # numbers = r'?:[-]?\d+(?:[,-.]\d+'
-    # symbols = r'?:[\\(){}[\]=&|^+<>/*%;\.,"\'?!~——]'
-    #
-    # token_pattern = fr'({symbols})|({numbers})*|({words}))'
-    # tokens = re.findall(token_pattern, string=text)
-    docs = ['']
-    paragraphs = text.split('\n')
-    i = 0
-    count = 0
-    for p in load_tqdm(paragraphs):
-        count += len(p)
-        if count >= 100000:
-            i += 1
-            count = len(p)
-            docs.append('')
-        docs[i] += p
-
-    nlp = spacy.load("en_core_web_sm")
-    tokens = []
-    for doc in load_tqdm(docs, unit='word', desc='tokenizing'):
-        tokens += list(nlp(doc))
+    token_pattern = r'\w[.]{1}\w|\w+'
+    tokens = re.findall(token_pattern, string=text)
 
     return tokens
 
