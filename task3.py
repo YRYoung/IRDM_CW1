@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
+import warnings
+
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
@@ -8,6 +10,8 @@ from scipy.sparse.linalg import norm
 from scipy.sparse.sparsetools import csr_scale_rows
 
 from task2 import generate_indexes, read_all_csv, passages_indexes, passages_df
+
+warnings.filterwarnings(action='ignore', module='scipy')
 
 
 def read_queries_csv(data_location='data/test-queries.tsv'):
@@ -95,7 +99,7 @@ def get_bm25(tf_p, tf_q, idf, p_len_normalized, k1=1.2, k2=100, b=.75):
     temp1.data = 1 / (temp1.data + k2)
     right = temp0.multiply(temp1)
 
-    return left.T @ right
+    return right.T @ left
 
 
 def sparse_add_vec(mat: csr_matrix, vec):
@@ -106,38 +110,56 @@ def sparse_add_vec(mat: csr_matrix, vec):
     return mat
 
 
+verbose = __name__ == '__main__'
+
+
+def ifprint(s, **kwargs):
+    if verbose: print(s, **kwargs)
+
+
 if __name__ == '__main__':
     # 1. Extract IDF
+    ifprint('Extract IDF')
     idf = get_idf(passages_indexes)
 
     # 2. Extract TF-IDF of passages
+    ifprint('Extract TF-IDF of passages')
     passages_tf = get_tf(passages_indexes)
     passages_tfidf = generate_tf_idf(passages_tf, idf)
 
-    # 3. Using idf_psgs, extract the TF-IDF of queries.
+    # 3. Using idf_psgs, extract TF-IDF of queries.
+    ifprint('Extract the TF-IDF of queries')
     queries_dataframe = read_queries_csv()
     queries_indexes = generate_indexes(queries_dataframe)
     queries_tf = get_tf(queries_indexes)
     queries_tfidf = generate_tf_idf(queries_tf, idf)
 
     # 4. Use a basic vector space model with TF-IDF and cosine similarity
-    similarities = cosine_similarity(queries_tfidf, passages_tfidf)
+    ifprint('Calculate cosine similarity scores')
+    similarity_scores = cosine_similarity(queries_tfidf, passages_tfidf)
 
     # 5. retrieve at most 100 passages from the 1000 passages for each query
     # no headers, expected to have 19,290 rows
+    ifprint('Retrieve passages for each query', end=' ')
     candidates_passages_df = read_all_csv()
-    cosine_similarity_result = select_first100(similarities)
+    similarity_result = select_first100(similarity_scores)
+    ifprint(f'rows:{similarity_result.shape[0]}')
 
     # 6. Store the outcomes in a file named tfidf.csv
-    cosine_similarity_result.to_csv('tfidf.csv', header=False, index=False)
+    ifprint('Store results')
+    similarity_result.to_csv('tfidf.csv', header=False, index=False)
 
     # 7. Use inverted index to implement BM25
     # while setting k1 = 1.2, k2 = 100, and b = 0.75.
+    ifprint('Calculate BM25 scores')
     bm25_scores = get_bm25(tf_p=passages_tf, tf_q=queries_tf, idf=idf,
-                           p_len_normalized=get_p_length_normalized(passages_indexes))
+                           p_len_normalized=get_p_length_normalized(passages_indexes)).toarray()
 
     # 8. Retrieve at most 100 passages from within the 1000 passages for each query.
+    ifprint('Retrieve passages for each query', end=' ')
     bm25_result = select_first100(bm25_scores)
+    ifprint(f'rows:{bm25_result.shape[0]}')
 
     # 9. Store the outcomes in a file named bm25.csv
+    ifprint('Store results')
     bm25_result.to_csv('bm25.csv', header=False, index=False)
