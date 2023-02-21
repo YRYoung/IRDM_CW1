@@ -100,7 +100,7 @@ def plot_zipf(word_freq_list, remove=False):
         plt.xlabel('Term freq. ranking' + str)
         plt.ylabel('Term prob. of occurrence' + str)
         plt.legend()
-        plt.savefig(f'freq_prob_plot{str}' + '_stopwords_removed' if remove else '')
+        plt.savefig(f'freq_prob_plot{str}' + ('_stopwords_removed' if remove else ''))
         plt.show()
 
 
