@@ -19,9 +19,8 @@ from collections import Counter
 
 import matplotlib.pyplot as plt
 import numpy as np
-import spacy
+from nltk import WordNetLemmatizer
 from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
 from tqdm.autonotebook import tqdm
 
 # spacy.cli.download("en_core_web_sm")
