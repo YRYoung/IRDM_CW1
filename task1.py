@@ -105,7 +105,7 @@ def plot_zipf(word_freq_list, remove=False):
 
 
 verbose = __name__ == '__main__'
-vocab_file_name = 'vocab2.npy'
+vocab_file_name = 'vocab.npy'
 
 try:
     tokens = np.load(vocab_file_name)
