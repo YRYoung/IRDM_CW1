@@ -33,6 +33,10 @@ from tqdm.autonotebook import tqdm
 __all__ = ['tokens', 'preprocessing']
 
 
+def ifprint(s, **kwargs):
+    if verbose: print(s, **kwargs)
+
+
 def load_tqdm(iterate, **kwargs):
     return tqdm(iterate, **kwargs) if verbose else iterate
 
@@ -65,18 +69,18 @@ def get_tokens(text) -> list:
 
 
 def read_txt(filename='./data/passage-collection.txt'):
-    if verbose:
-        print('reading txt')
+    ifprint('complete', end='')
     with open(filename, "r", encoding='utf-8') as f:  # 打开文件
         data = f.read()  # 读取文件
+    ifprint('complete')
     return data
 
 
 def preprocessing(data):
-    if verbose:
-        print(f"tokenizing")
+    ifprint('complete', end='')
     data = get_tokens(data.lower())
-    data = clean_tokens(data)
+    data = remove_nums(data)
+    ifprint('complete')
 
     # 把一个任何形式的语言词汇还原为一般形式（能表达完整语义）
     lemmatizer = WordNetLemmatizer()
@@ -102,20 +106,16 @@ def remove_stop_words(text):
 def plot_zipf(word_freq_list, remove=False):
     count_words = word_freq_list[:, 1].astype('int')
     num_words = np.sum(count_words)
-    if verbose:
-        print(f'Number of words: {num_words}')
+    ifprint(f'Number of words: {num_words}')
     N = len(word_freq_list)
-    if verbose:
-        print(f'Vocabulary: {N}')
+    ifprint(f'Vocabulary: {N}')
     result = count_words / num_words
 
     x = np.linspace(1, N, N)
     sum_i = sum([1 / i for i in range(1, N + 1)])
-    if verbose:
-        print(f'sum_i = {sum_i}')
+    ifprint(f'sum_i = {sum_i}')
     zipfLaw = np.array([1 / k for k in x]) / sum_i
-    if verbose:
-        print(f'MSE = {np.mean(np.square(result - zipfLaw))}')
+    ifprint(f'MSE = {np.mean(np.square(result - zipfLaw))}')
 
     for str, func in zip(['', '(log)'], [plt.plot, plt.loglog]):
         func(x, result, label='data')
