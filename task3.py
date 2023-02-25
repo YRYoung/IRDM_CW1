@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
+
 import warnings
+
+from tqdm import trange
+
+warnings.filterwarnings(action='ignore', category=DeprecationWarning)
 
 import numpy as np
 import pandas as pd
@@ -14,6 +19,44 @@ from task2 import generate_indexes, read_all_csv, passages_indexes, passages_df
 warnings.filterwarnings(action='ignore', module='scipy')
 
 
+class Help:
+
+    @staticmethod
+    def scale_csr(mat: csr_matrix, scaler):
+        result = mat.tocsr(copy=True)
+        m, n = mat.shape
+        assert m != n, f'matrix is a square with shape {(m, n)}'
+
+        scaler = np.array(scaler).reshape(-1)
+        s_size = scaler.shape[0]
+        assert s_size in [m, n], f'scaler has size {s_size}'
+
+        func = csr_scale_rows if s_size == m else csr_scale_columns
+        func(result.shape[0],
+             result.shape[1],
+             result.indptr,
+             result.indices,
+             result.data, scaler)
+
+        return result
+
+    @staticmethod
+    def sparse_add_vec(mat: csr_matrix, vec):
+        vec = np.array(vec).reshape(-1)
+        assert mat.shape[1] == vec.shape[0]
+        mat = mat.tocsc()
+        mat.data = mat.data * np.repeat(vec, mat.indptr[1:] - mat.indptr[:-1])
+        return mat
+
+    @staticmethod
+    def cosine_similarity(mat1: csr_matrix, mat2: csr_matrix):
+        result = (mat1.T @ mat2).toarray()
+        norm_1 = norm(mat1, axis=0).reshape(-1, 1)
+        norm_2 = norm(mat2, axis=0).reshape(1, -1)
+
+        return result / (norm_1 * norm_2)
+
+
 def read_queries_csv(data_location='data/test-queries.tsv'):
     return pd.read_csv(data_location,
                        sep='\t', header=None,
@@ -21,40 +64,24 @@ def read_queries_csv(data_location='data/test-queries.tsv'):
                        ).drop_duplicates().reset_index(drop=True)
 
 
-def scale_csr(mat, scaler):
-    result = mat.tocsr(copy=True)
-    csr_scale_rows(result.shape[0],
-                   result.shape[1],
-                   result.indptr,
-                   result.indices,
-                   result.data, scaler)
-    return result
-
-
 def get_tf(inverted_indexes):
-    count = inverted_indexes.sum(axis=1)
-    return scale_csr(inverted_indexes, 1 / count)
+    # (1, doc_n)
+    doc_len = inverted_indexes.sum(axis=0)  # 一篇文章总共多少次
+    # (vocab_n, doc_n) * (1, doc_n)
+    return Help.scale_csr(inverted_indexes, 1 / doc_len)
 
 
 def generate_tf_idf(tf, idf):
-    return scale_csr(tf, idf)
+    return Help.scale_csr(tf, idf)
 
 
-def get_idf(inverted_indexes, log_func=np.log10, add_half=False):
+def get_idf(inverted_indexes, np_log=np.log, add_half=False):
     n = inverted_indexes.shape[1]
     non_zeros = inverted_indexes.indptr[1:] - inverted_indexes.indptr[:-1]
-    return log_func((n - non_zeros + .5) / (non_zeros + .5)) if add_half else log_func(n / non_zeros)
+    return np_log((n - non_zeros + .5) / (non_zeros + .5)) if add_half else np_log(n / non_zeros)
 
 
-def cosine_similarity(mat1: csr_matrix, mat2: csr_matrix):
-    result = (mat1.T @ mat2).toarray()
-    norm_1 = norm(mat1, axis=0).reshape(-1, 1)
-    norm_2 = norm(mat2, axis=0).reshape(1, -1)
-
-    return result / (norm_1 * norm_2)
-
-
-def select_first100(scores):
+def select_first100(scores, remove_negative=True):
     result = np.zeros((200 * 100, 3)) * np.nan
     for i in range(scores.shape[0]):
         qid = queries_dataframe.loc[i].qid
