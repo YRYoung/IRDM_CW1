@@ -59,7 +59,7 @@ class Help:
         return result / (norm_1 * norm_2)
 
 
-def read_queries_csv(data_location='data/test-queries.tsv'):
+def read_queries_csv(data_location='test-queries.tsv'):
     return pd.read_csv(data_location,
                        sep='\t', header=None,
                        names=['qid', 'content']
