@@ -27,6 +27,7 @@ from tqdm.autonotebook import tqdm
 # nltk.download('wordnet')
 # nltk.download('omw-1.4')
 # nltk.download('stopwords')
+remove_words = stopwords.words('english')
 
 # time_str = f"\t{datetime.datetime.now().strftime('%H:%M:%S')}"
 
@@ -56,8 +57,8 @@ def read_txt(filename='./data/passage-collection.txt'):
     return data
 
 
-def preprocessing(data):
-    ifprint('complete', end='')
+def preprocessing(data, remove_stop_words=True):
+    ifprint('tokenize', end='')
     data = get_tokens(data.lower())
     data = remove_nums(data)
     ifprint('complete')
@@ -65,6 +66,11 @@ def preprocessing(data):
     # 把一个任何形式的语言词汇还原为一般形式（能表达完整语义）
     lemmatizer = WordNetLemmatizer()
     data = [lemmatizer.lemmatize(d) for d in (load_tqdm(data, unit='word', desc='lemmatizing'))]
+    ifprint('complete')
+
+    if remove_stop_words:
+        data = list(filter(lambda x: x not in remove_words, data))
+
     return Counter(data).most_common()
 
 
@@ -75,7 +81,6 @@ def remove_nums(word_list):
 
 
 def remove_stop_words(text):
-    remove_words = stopwords.words('english')
     indexes = [i for i in range(text.shape[0]) if text[i, 0] not in remove_words]
     return text[indexes]
 
@@ -105,14 +110,19 @@ def plot_zipf(word_freq_list, remove=False):
 
 
 verbose = __name__ == '__main__'
-vocab_file_name = 'vocab.npy'
+vocab_file_name = ['vocab.npy', 'vocab_no_sw.npy']
 
 try:
-    tokens = np.load(vocab_file_name)
+    tokens = np.load(vocab_file_name[0 if verbose else 1])
 except FileNotFoundError:
-    tokens = np.array(preprocessing(read_txt()))
-    np.save(vocab_file_name, tokens)
+
+    tokens = np.array(preprocessing(read_txt(), remove_stop_words=False))
+    np.save(vocab_file_name[0], tokens)
+
+    tokens_no_sw = remove_stop_words(tokens)
+    np.save(vocab_file_name[1], tokens_no_sw)
 
 if __name__ == '__main__':
     plot_zipf(tokens)
+    print('\nStop word removed:')
     plot_zipf(remove_stop_words(tokens), True)
