@@ -45,7 +45,7 @@ def generate_indexes(dataframe):
                 unit='passage') if verbose else dataframe.iterrows()
     for index, passage in pbar:
         word_counter = preprocessing(passage.content)
-        word_counter = Counter(word_counter)
+        # word_counter = Counter(word_counter).most_common()
 
         for word, count in word_counter:
             try:
@@ -57,14 +57,14 @@ def generate_indexes(dataframe):
     return csr_matrix(inverted_indexes)
 
 
-passages_df = read_passages_csv()
+passages_dataframe = read_passages_csv()
 file_name = 'passages_indexes.pkl'
-
+verbose = __name__ == '__main__'
 if os.path.exists(file_name):
     with open(file_name, 'rb') as file:
         passages_indexes = pickle.load(file)
 else:
-    passages_indexes = generate_indexes(passages_df)
+    passages_indexes = generate_indexes(passages_dataframe)
     with open(file_name, 'wb') as file:
         pickle.dump(passages_indexes, file)
 
