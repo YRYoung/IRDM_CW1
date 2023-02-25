@@ -85,10 +85,10 @@ def get_idf(inverted_indexes, np_log=np.log, add_half=False):
 
 def select_first100(scores, remove_negative=True):
     result = np.zeros((200 * 100, 3)) * np.nan
-    for i in range(scores.shape[0]):
+    for i in trange(200):
         qid = queries_dataframe.loc[i].qid
-        candidates_pids = candidates_passages_df[candidates_passages_df.qid == qid].pid.values
-        candidates_pids_idxs = passages_df[passages_df.pid.isin(candidates_pids)].index.values
+        candidates_pids = candidates_passages_dataframe[candidates_passages_dataframe.qid == qid].pid.values
+        candidates_pids_idxs = passages_dataframe[passages_dataframe.pid.isin(candidates_pids)].index.values
 
         score = scores[i, candidates_pids_idxs]
 
@@ -137,8 +137,14 @@ verbose = __name__ == '__main__'
 
 
 def ifprint(s, **kwargs):
-    if verbose: print(s, **kwargs)
+    if verbose:
+        print(s, **kwargs)
 
+
+ifprint('Loading dataframes from files')
+queries_dataframe = read_queries_csv()
+queries_indexes = generate_indexes(queries_dataframe)
+candidates_passages_dataframe = read_all_csv()
 
 if __name__ == '__main__':
     # 1. Extract IDF
@@ -184,3 +190,5 @@ if __name__ == '__main__':
     # 9. Store the outcomes in a file named bm25.csv
     ifprint('Store results')
     bm25_result.to_csv('bm25.csv', header=False, index=False)
+
+    ifprint('------complete------')
