@@ -7,7 +7,6 @@ Build an inverted index for the collection so that you can retrieve passages in 
 """
 import os.path
 import pickle
-from collections import Counter
 
 import pandas as pd
 from scipy.sparse import lil_matrix, csr_matrix
