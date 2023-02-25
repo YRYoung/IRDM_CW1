@@ -12,9 +12,9 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import norm
-from scipy.sparse.sparsetools import csr_scale_rows
+from scipy.sparse.sparsetools import csr_scale_rows, csr_scale_columns
 
-from task2 import generate_indexes, read_all_csv, passages_indexes, passages_df
+from task2 import generate_indexes, read_all_csv, passages_indexes, passages_dataframe
 
 __all__ = ['passages_indexes', 'queries_indexes',
            'passages_dataframe', 'queries_dataframe', 'candidates_passages_dataframe',
@@ -92,8 +92,10 @@ def select_first100(scores, remove_negative=True):
 
         score = scores[i, candidates_pids_idxs]
 
+
         first_100 = np.argsort(score)[::-1][:100]
-        indexes = first_100[score[first_100] > 0]
+
+        indexes = first_100[score[first_100] > 0] if remove_negative else first_100
 
         pids = candidates_pids[indexes]
 
@@ -117,11 +119,11 @@ def get_bm25(tf_p, tf_q, idf, p_len_normalized, k1=1.2, k2=100, b=.75):
     K = k1 * ((1 - b) + b * p_len_normalized)  # different for every passage
 
     temp0 = ((k1 + 1) * tf_p)
-    temp1 = sparse_add_vec(tf_p, K)
+    temp1 = Help.sparse_add_vec(tf_p, K)
     temp1.data = 1 / temp1.data
     S1 = temp0.multiply(temp1)
 
-    left = scale_csr(S1, idf)
+    left = Help.scale_csr(S1, idf)
 
     temp0 = ((k2 + 1) * tf_q)
     temp1 = tf_q.copy()
@@ -129,14 +131,6 @@ def get_bm25(tf_p, tf_q, idf, p_len_normalized, k1=1.2, k2=100, b=.75):
     right = temp0.multiply(temp1)
 
     return right.T @ left
-
-
-def sparse_add_vec(mat: csr_matrix, vec):
-    vec = np.array(vec).reshape(-1)
-    assert mat.shape[1] == vec.shape[0]
-    mat = mat.tocsc()
-    mat.data = mat.data * np.repeat(vec, mat.indptr[1:] - mat.indptr[:-1])
-    return mat
 
 
 verbose = __name__ == '__main__'
@@ -158,20 +152,18 @@ if __name__ == '__main__':
 
     # 3. Using idf_psgs, extract TF-IDF of queries.
     ifprint('Extract the TF-IDF of queries')
-    queries_dataframe = read_queries_csv()
-    queries_indexes = generate_indexes(queries_dataframe)
+
     queries_tf = get_tf(queries_indexes)
     queries_tfidf = generate_tf_idf(queries_tf, idf)
 
     # 4. Use a basic vector space model with TF-IDF and cosine similarity
     ifprint('Calculate cosine similarity scores')
-    similarity_scores = cosine_similarity(queries_tfidf, passages_tfidf)
+    similarity_scores = Help.cosine_similarity(queries_tfidf, passages_tfidf)
 
     # 5. retrieve at most 100 passages from the 1000 passages for each query
     # no headers, expected to have 19,290 rows
     ifprint('Retrieve passages for each query', end=' ')
-    candidates_passages_df = read_all_csv()
-    similarity_result = select_first100(similarity_scores)
+    similarity_result = select_first100(similarity_scores) # (200, 182469)
     ifprint(f'rows:{similarity_result.shape[0]}')
 
     # 6. Store the outcomes in a file named tfidf.csv
