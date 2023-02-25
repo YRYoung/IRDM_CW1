@@ -40,9 +40,10 @@ def generate_indexes(dataframe):
     """
     passages_size = dataframe.shape[0]
     inverted_indexes = lil_matrix((vocab_size, passages_size))
-    error_list = []
-    for index, passage in tqdm(dataframe.iterrows(),
-                               total=passages_size, desc='Invert indexing', unit='passage'):
+    error_list = set()
+    pbar = tqdm(dataframe.iterrows(), total=passages_size, desc='Invert indexing',
+                unit='passage') if verbose else dataframe.iterrows()
+    for index, passage in pbar:
         word_counter = preprocessing(passage.content)
         word_counter = Counter(word_counter)
 
@@ -50,8 +51,9 @@ def generate_indexes(dataframe):
             try:
                 inverted_indexes[vocab_dict[word], index] = count
             except KeyError:
-                error_list.append(word)
-    print(error_list)
+                error_list.add(word)
+    if verbose and len(error_list) != 0:
+        print(f'Words not in vocab: {error_list}')
     return csr_matrix(inverted_indexes)
 
 
