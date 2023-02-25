@@ -16,7 +16,9 @@ from scipy.sparse.sparsetools import csr_scale_rows
 
 from task2 import generate_indexes, read_all_csv, passages_indexes, passages_df
 
-warnings.filterwarnings(action='ignore', module='scipy')
+__all__ = ['passages_indexes', 'queries_indexes',
+           'passages_dataframe', 'queries_dataframe', 'candidates_passages_dataframe',
+           'Help', 'select_first100']
 
 
 class Help:
