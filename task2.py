@@ -18,14 +18,14 @@ vocab_size = len(tokens)
 vocab_dict = dict(zip(tokens[:, 0], range(vocab_size)))
 
 
-def read_passages_csv(data_location='./data/candidate-passages-top1000.tsv'):
+def read_passages_csv(data_location='./candidate-passages-top1000.tsv'):
     df = pd.read_csv(data_location,
                      sep='\t', header=None, usecols=[1, 3],
                      names=['pid', 'content']).drop_duplicates()
     return df.reset_index(drop=True)
 
 
-def read_all_csv(data_location='./data/candidate-passages-top1000.tsv'):
+def read_all_csv(data_location='./candidate-passages-top1000.tsv'):
     df = pd.read_csv(data_location,
                      sep='\t', header=None,
                      names=['qid', 'pid', 'query', 'passage']).drop_duplicates()
@@ -45,7 +45,6 @@ def generate_indexes(dataframe):
                 unit='passage') if verbose else dataframe.iterrows()
     for index, passage in pbar:
         word_counter = preprocessing(passage.content)
-        # word_counter = Counter(word_counter).most_common()
 
         for word, count in word_counter:
             try:
