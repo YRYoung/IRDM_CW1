@@ -1,7 +1,9 @@
 """
-Task 1 – Text statistics (30 marks). Use the data in passage-collection.txt for this
-task. Extract terms (1-grams) from the raw text. In doing so, you can also perform basic text
-preprocessing steps. However, you can also choose not to.
+Task 1 – Text statistics (30 marks).
+
+Use the data in passage-collection.txt for this task.
+Extract terms (1-grams) from the raw text.
+perform basic text preprocessing steps. (you can also choose not to)
 
 
 
