@@ -50,10 +50,10 @@ def get_tokens(text) -> list:
 
 
 def read_txt(filename='./data/passage-collection.txt'):
-    ifprint('complete', end='')
+    ifprint('read txt', end='')
     with open(filename, "r", encoding='utf-8') as f:  # 打开文件
         data = f.read()  # 读取文件
-    ifprint('complete')
+    ifprint(' complete')
     return data
 
 
@@ -61,9 +61,10 @@ def preprocessing(data, remove_stop_words=True):
     ifprint('tokenize', end='')
     data = get_tokens(data.lower())
     data = remove_nums(data)
-    ifprint('complete')
+    ifprint(' complete')
 
     # 把一个任何形式的语言词汇还原为一般形式（能表达完整语义）
+    ifprint('lemmatize')
     lemmatizer = WordNetLemmatizer()
     data = [lemmatizer.lemmatize(d) for d in (load_tqdm(data, unit='word', desc='lemmatizing'))]
     ifprint('complete')
