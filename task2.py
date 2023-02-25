@@ -69,4 +69,4 @@ else:
         pickle.dump(passages_indexes, file)
 
 if __name__ == '__main__':
-    read_all_csv()
+    print('indexing complete')
