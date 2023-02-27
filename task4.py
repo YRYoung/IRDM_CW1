@@ -43,33 +43,23 @@ class DirichletScore:
         self.freq_of_vocab = passages_indexes.sum(axis=1)  # (vocab_n, 1)
         self.n_tokens = self.freq_of_vocab.sum()
 
-    def __getitem__(self, index: tuple[int, np.ndarray]):
-        if isinstance(index, tuple):
-            _, passages_i = index
-        else:
-            passages_i = index
+    def __getitem__(self, index):
+        passages_i = index[1] if isinstance(index, tuple) else index
 
-        # vocab_n, 1
+        # (vocab_n, 1)
         coef1 = self.coef1[:, passages_i]
         temp1 = self.freq_of_vocab @ coef1  # (vocab_n, 1) @ (1, doc_n) --> (vocab_n, doc_n)
         temp1.data /= self.n_tokens
-        return np.array((self.temp0[:, passages_i] + temp1).sum(axis=0)).reshape(-1)
+        result = np.array((self.temp0[:, passages_i] + temp1).sum(axis=0)).reshape(-1)
+
+        return result
 
 
 def get_scores(prob_passages: csr_matrix):
-    # 把q_idxes里有单词的地方变为1，然后乘prob矩阵
     return (queries_indexes.T @ prob_passages).toarray()
 
 
-verbose = __name__ == '__main__'
-
-
-def ifprint(s, **kwargs):
-    if verbose:
-        print(s, **kwargs)
-
-
-doc_len = passages_indexes.sum(axis=0)  # 一篇文章总共多少词 (1, doc_n)
+doc_len = passages_indexes.sum(axis=0)  # (1, doc_n)
 
 if __name__ == '__main__':
     '''
@@ -78,11 +68,12 @@ if __name__ == '__main__':
         (b) Lidstone correction with ϵ = 0.1
         (c) Dirichlet smoothing with µ = 50
     '''
-    ifprint('Calculate query likelihood')
+    print('Calculate query likelihood')
 
     types = ['dirichlet']
 
     for t in types:
+        print(f'- {t}')
         prob_passages = get_smoothed_tf(passages_indexes, t)
 
         score = DirichletScore(prob_passages) if t == 'dirichlet' else get_scores(prob_passages)
@@ -91,3 +82,4 @@ if __name__ == '__main__':
 
         # Store outcomes in the files laplace.csv, lidstone.csv, and dirichlet.csv.
         result.to_csv(f'{t}.csv', header=False, index=False)
+
