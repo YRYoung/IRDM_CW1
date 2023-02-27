@@ -1,2 +1,7 @@
-/data/
+*.csv
+*.tsv
+*.png
+*.npy
+*.pkl
+*.txt
 /.idea
