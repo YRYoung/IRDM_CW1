@@ -5,3 +5,4 @@
 *.pkl
 *.txt
 /.idea
+__pycache__/
