@@ -20,18 +20,19 @@ import re
 from collections import Counter
 
 import matplotlib.pyplot as plt
+
 import numpy as np
-from nltk import WordNetLemmatizer
+from nltk import WordNetLemmatizer, download
 from nltk.corpus import stopwords
 from tqdm.autonotebook import tqdm
 
-# spacy.cli.download("en_core_web_sm")
-# nltk.download('wordnet')
-# nltk.download('omw-1.4')
-# nltk.download('stopwords')
-remove_words = stopwords.words('english')
 
-# time_str = f"\t{datetime.datetime.now().strftime('%H:%M:%S')}"
+try:
+    remove_words = stopwords.words('english')
+except:
+    download('wordnet')
+    download('stopwords')
+    remove_words = stopwords.words('english')
 
 __all__ = ['tokens', 'preprocessing']
 
@@ -51,7 +52,7 @@ def get_tokens(text) -> list:
     return tokens
 
 
-def read_txt(filename='./data/passage-collection.txt'):
+def read_txt(filename='passage-collection.txt'):
     ifprint('read txt', end='')
     with open(filename, "r", encoding='utf-8') as f:  # 打开文件
         data = f.read()  # 读取文件
@@ -70,6 +71,7 @@ def preprocessing(data, remove_stop_words=True):
     lemmatizer = WordNetLemmatizer()
     data = [lemmatizer.lemmatize(d) for d in (load_tqdm(data, unit='word', desc='lemmatizing'))]
     ifprint('complete')
+    ifprint('-' * 10)
 
     if remove_stop_words:
         data = list(filter(lambda x: x not in remove_words, data))
@@ -126,6 +128,7 @@ except FileNotFoundError:
     np.save(vocab_file_name[1], tokens_no_sw)
 
 if __name__ == '__main__':
+    print('With stop words:')
     plot_zipf(tokens)
     print('\nStop word removed:')
     plot_zipf(remove_stop_words(tokens), True)
