@@ -62,15 +62,9 @@ def get_scores(prob_passages: csr_matrix):
 doc_len = passages_indexes.sum(axis=0)  # (1, doc_n)
 
 if __name__ == '__main__':
-    '''
-    Implement the query likelihood language model with
-        (a) Laplace smoothing,
-        (b) Lidstone correction with ϵ = 0.1
-        (c) Dirichlet smoothing with µ = 50
-    '''
     print('Calculate query likelihood')
 
-    types = ['dirichlet']
+    types = ['laplace','lidstone','dirichlet']
 
     for t in types:
         print(f'- {t}')
