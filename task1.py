@@ -31,6 +31,7 @@ try:
     remove_words = stopwords.words('english')
 except:
     download('wordnet')
+    download('omw-1.4')
     download('stopwords')
     remove_words = stopwords.words('english')
 
@@ -132,3 +133,5 @@ if __name__ == '__main__':
     plot_zipf(tokens)
     print('\nStop word removed:')
     plot_zipf(remove_stop_words(tokens), True)
+
+#%%
