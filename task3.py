@@ -68,7 +68,7 @@ def read_queries_csv(data_location='test-queries.tsv'):
 
 def get_tf(inverted_indexes):
     # (1, doc_n)
-    doc_len = inverted_indexes.sum(axis=0)  # 一篇文章总共多少次
+    doc_len = inverted_indexes.sum(axis=0)  # 一篇文章总共多少词
     # (vocab_n, doc_n) * (1, doc_n)
     return Help.scale_csr(inverted_indexes, 1 / doc_len)
 
@@ -78,6 +78,7 @@ def generate_tf_idf(tf, idf):
 
 
 def get_idf(inverted_indexes, np_log=np.log, add_half=False):
+    inverted_indexes.eliminate_zeros()
     n = inverted_indexes.shape[1]
     non_zeros = inverted_indexes.indptr[1:] - inverted_indexes.indptr[:-1]
     return np_log((n - non_zeros + .5) / (non_zeros + .5)) if add_half else np_log(n / non_zeros)
@@ -91,7 +92,6 @@ def select_first100(scores, remove_negative=True):
         candidates_pids_idxs = passages_dataframe[passages_dataframe.pid.isin(candidates_pids)].index.values
 
         score = scores[i, candidates_pids_idxs]
-
 
         first_100 = np.argsort(score)[::-1][:100]
 
@@ -115,22 +115,35 @@ def get_p_length_normalized(inverted_indexes_p):
     return doc_len / avdl
 
 
-def get_bm25(tf_p, tf_q, idf, p_len_normalized, k1=1.2, k2=100, b=.75):
-    K = k1 * ((1 - b) + b * p_len_normalized)  # different for every passage
+class BM25Score:
+    def __init__(self, tf_p, tf_q, idf, p_len_normalized, k1=1.2, k2=100, b=.75):
+        # setting k1 = 1.2, k2 = 100, and b = 0.75.
 
-    temp0 = ((k1 + 1) * tf_p)
-    temp1 = Help.sparse_add_vec(tf_p, K)
-    temp1.data = 1 / temp1.data
-    S1 = temp0.multiply(temp1)
+        self.tf_p = tf_p  # (vocab_n, doc_n)
+        self.idf = idf  # (vocab_n, )
 
-    left = Help.scale_csr(S1, idf)
+        self.K = k1 * ((1 - b) + b * p_len_normalized)  # (1, doc_n)
+        self.temp0 = ((k1 + 1) * tf_p)  # (vocab_n, doc_n)
 
-    temp0 = ((k2 + 1) * tf_q)
-    temp1 = tf_q.copy()
-    temp1.data = 1 / (temp1.data + k2)
-    right = temp0.multiply(temp1)
+        temp0 = ((k2 + 1) * tf_q)
+        temp1 = tf_q.copy()
+        temp1.data = 1 / (temp1.data + k2)
+        self.right = temp0.multiply(temp1).T
 
-    return right.T @ left
+    def __getitem__(self, item):
+        i, j = item
+        temp0 = self.temp0[:, j]  # (vocab_n, j_len)
+        temp1 = 1 / (self.tf_p[:, j] + self.K[:, j])  # (vocab_n, j_len)
+
+        S1 = temp0.multiply(temp1)  # (vocab_n, j_len)
+
+        left = Help.scale_csr(S1, self.idf)
+
+        return (self.right[i] @ left).toarray().reshape(-1)
+
+
+def get_bm25(tf_p, tf_q, idf, p_len_normalized):
+    return BM25Score(tf_p, tf_q, idf, p_len_normalized)
 
 
 verbose = __name__ == '__main__'
@@ -169,7 +182,7 @@ if __name__ == '__main__':
     # 5. retrieve at most 100 passages from the 1000 passages for each query
     # no headers, expected to have 19,290 rows
     ifprint('Retrieve passages for each query', end=' ')
-    similarity_result = select_first100(similarity_scores) # (200, 182469)
+    similarity_result = select_first100(similarity_scores)  # (200, 182469)
     ifprint(f'rows:{similarity_result.shape[0]}')
 
     # 6. Store the outcomes in a file named tfidf.csv
@@ -179,16 +192,19 @@ if __name__ == '__main__':
     # 7. Use inverted index to implement BM25
     # while setting k1 = 1.2, k2 = 100, and b = 0.75.
     ifprint('Calculate BM25 scores')
-    bm25_scores = get_bm25(tf_p=passages_tf, tf_q=queries_tf, idf=idf,
-                           p_len_normalized=get_p_length_normalized(passages_indexes)).toarray()
+    idf_half = get_idf(passages_indexes, add_half=True)
+    bm25_scores = get_bm25(tf_p=passages_indexes, tf_q=queries_indexes, idf=idf_half,
+                           p_len_normalized=get_p_length_normalized(passages_indexes))
 
     # 8. Retrieve at most 100 passages from within the 1000 passages for each query.
     ifprint('Retrieve passages for each query', end=' ')
     bm25_result = select_first100(bm25_scores)
     ifprint(f'rows:{bm25_result.shape[0]}')
 
-    # 9. Store the outcomes in a file named bm25.csv
+    # 9. Store the outcomes in a file named bm25_0.csv
     ifprint('Store results')
     bm25_result.to_csv('bm25.csv', header=False, index=False)
 
     ifprint('------complete------')
+
+# %%
